@@ -1,0 +1,219 @@
+@startuml
+
+skinparam classAttributeIconSize 0
+skinparam class {
+    BackgroundColor<<abstract>> LightBlue
+    BackgroundColor<<interface>> LightGreen
+    BorderColor Black
+    ArrowColor Black
+}
+
+abstract class Game {
+    #board_size: int
+    #board: Board
+    #rules: RuleEngine
+    #view: ConsoleView
+    #players: list
+    #move_history: list
+    #current_player_idx: int
+    #game_over: bool
+    #winner: int
+    #consecutive_passes: int
+    +run()
+    +initialize()
+    +display()
+    +get_input(): str
+    +process(cmd)
+    +try_place(cmd)
+    +do_pass()
+    +undo()
+    +resign()
+    +restart()
+    +handle_save(cmd)
+    +handle_load(cmd)
+    +{abstract} game_type_name(): str
+    +{abstract} get_win_reason(): str
+    +{abstract} end_by_scoring()
+}
+
+class GomokuGame {
+    +game_type_name(): str
+    +get_win_reason(): str
+    +end_by_scoring()
+}
+
+class GoGame {
+    +game_type_name(): str
+    +get_win_reason(): str
+    +end_by_scoring()
+}
+
+abstract class RuleEngine {
+    +{abstract} validate_move(board, move, history): tuple
+    +{abstract} check_win(board, last_move): int
+    +{abstract} check_draw(board): bool
+    +{abstract} process_captures(board, move): list
+    +{abstract} can_pass(): bool
+    +{abstract} is_game_over_condition(consecutive_passes): bool
+}
+
+class GomokuRules {
+    +validate_move(board, move, history): tuple
+    +check_win(board, last_move): int
+    +check_draw(board): bool
+    +process_captures(board, move): list
+    +can_pass(): bool
+    +is_game_over_condition(consecutive_passes): bool
+}
+
+class GoRules {
+    +KOMI: float = 7.5
+    +validate_move(board, move, history): tuple
+    +check_win(board, last_move): int
+    +check_draw(board): bool
+    +process_captures(board, move): list
+    +can_pass(): bool
+    +is_game_over_condition(consecutive_passes): bool
+    +calculate_score(board): tuple
+}
+
+class Board {
+    +size: int
+    +grid: list
+    +get(row, col): int
+    +set(row, col, color)
+    +remove(row, col)
+    +is_empty(row, col): bool
+    +is_valid_pos(row, col): bool
+    +count_stones(color): int
+    +is_full(): bool
+    +copy_grid(): list
+    +count_territory(): tuple
+}
+
+class Move {
+    +color: int
+    +row: int
+    +col: int
+    +is_pass: bool
+    +captured: list
+    +to_dict(): dict
+    +from_dict(data): Move
+}
+
+class Player {
+    +color: int
+    +name: str
+}
+
+class GamePlatform {
+    -_instance: GamePlatform
+    -current_game: Game
+    -view: ConsoleView
+    -running: bool
+    +__new__(): GamePlatform
+    +start()
+    +reset_instance()
+}
+
+class GameFactory {
+    +GAME_TYPES: dict
+    +create_game(game_type, board_size, view): Game
+    +create_from_state(state, view): Game
+    +list_types(): dict
+}
+
+class ConsoleView {
+    +show_help_tips: bool
+    +components: dict
+    +show_welcome()
+    +show_board(board, current_player)
+    +show_message(msg)
+    +show_error(msg)
+    +show_success(msg)
+    +show_help()
+    +show_game_over(winner, reason)
+    +show_go_score(black_score, white_score, komi)
+}
+
+class ConsoleViewBuilder {
+    -_view: ConsoleView
+    +set_help_tips(enabled): ConsoleViewBuilder
+    +add_component(name, component): ConsoleViewBuilder
+    +add_color_scheme(black, white, empty): ConsoleViewBuilder
+    +add_title(title): ConsoleViewBuilder
+    +add_status_bar(enabled): ConsoleViewBuilder
+    +add_move_counter(enabled): ConsoleViewBuilder
+    +build(): ConsoleView
+}
+
+class GameState {
+    +game_type: str
+    +board_data: dict
+    +current_player: int
+    +move_history: list
+    +consecutive_passes: int
+    +game_over: bool
+    +winner: int
+    +to_dict(): dict
+    +from_dict(data): GameState
+}
+
+class SaveManager {
+    +save(state, filename): str
+    +load(filename): GameState
+    +list_saves(): list
+}
+
+Game <|-- GomokuGame
+Game <|-- GoGame
+RuleEngine <|-- GomokuRules
+RuleEngine <|-- GoRules
+
+Game *-- Board
+Game *-- RuleEngine
+Game *-- Player
+Game "1" *-- "*" Move
+
+GamePlatform --> GameFactory
+GamePlatform --> ConsoleViewBuilder
+GameFactory ..> Game
+ConsoleViewBuilder ..> ConsoleView
+Game --> SaveManager
+SaveManager ..> GameState
+
+note right of GamePlatform
+  单例模式
+  确保平台只有一个实例
+end note
+
+note right of Game::run
+  模板方法
+  定义游戏流程骨架:
+  initialize→while循环
+  →display→get_input→process
+end note
+
+note bottom of RuleEngine
+  策略模式
+  将不同游戏规则
+  封装为独立策略类
+end note
+
+note left of GameState
+  备忘录模式
+  捕获游戏内部状态
+  用于存档/读档
+end note
+
+note bottom of GameFactory
+  工厂模式
+  统一创建游戏对象
+end note
+
+note bottom of ConsoleViewBuilder
+  建造者模式
+  先设计后建造视图
+end note
+
+@enduml
