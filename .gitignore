@@ -4,3 +4,7 @@ __pycache__/
 .pytest_cache/
 .DS_Store
 saves/
+demo.py
+demo_server.py
+demo_screenshot.png
+demo_video.webm
